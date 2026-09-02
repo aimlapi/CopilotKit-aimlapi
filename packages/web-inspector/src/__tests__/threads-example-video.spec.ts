@@ -515,7 +515,7 @@ test("loaded data fades in and resolved guarded playback enters playing", async 
   }
 });
 
-test("locked reduced motion defers then loads the same asset without autoplay", async () => {
+test("locked Threads use the Rich Threads Loom embed without starting the native demo lifecycle", async () => {
   const harness = await setupFixture({
     mode: "locked",
     reducedMotion: true,
@@ -524,23 +524,21 @@ test("locked reduced motion defers then loads the same asset without autoplay", 
   });
   try {
     const root = harness.inspector.shadowRoot!;
-    const video = requireVideo(root);
-    const routesBeforeGate = harness.routes();
+    const video = root.querySelector<HTMLIFrameElement>(
+      '[data-inspector-feature-video="threads"]',
+    );
 
-    expect(video.hasAttribute("src")).toBe(false);
-    expect(requireDemoControl(root).textContent?.trim()).toBe("Play demo");
+    expect(video?.src).toBe(
+      "https://www.loom.com/embed/12e4885e3f5b4c6d926ad7fdf9fb8cf4",
+    );
+    expect(video?.title).toBe("Rich Threads overview");
+    expect(root.querySelector(".cpk-threads-overview-video")).toBeNull();
+    expect(
+      root.querySelector(".cpk-threads-overview-video-control"),
+    ).toBeNull();
     expectAllExamples(root);
-
-    await harness.fireGate();
-
-    const control = requireDemoControl(root);
-    expect(video.getAttribute("src")).toBe(VIDEO_URL);
-    expect(video.autoplay).toBe(false);
-    expect(video.hasAttribute("autoplay")).toBe(false);
     expect(harness.play).not.toHaveBeenCalled();
-    expect(control.textContent?.trim()).toBe("Play demo");
-    expect(control.getAttribute("aria-pressed")).toBe("true");
-    expect(harness.routes()).toEqual(routesBeforeGate);
+    expect(harness.routes()).toEqual(ZERO_ROUTES);
   } finally {
     await harness.teardown();
   }

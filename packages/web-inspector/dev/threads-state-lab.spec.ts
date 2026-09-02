@@ -348,7 +348,10 @@ async function requestCounters(
 /** Returns the expected action label for trusted fixture metadata. */
 function expectedActionLabel(scenario: ThreadsStateScenario): string | null {
   const kind = scenario.inspectorMetadata?.action?.kind;
-  if (kind === "manage_plan") {
+  if (
+    scenario.inspectorMetadata?.license?.state === "valid" &&
+    kind === "manage_plan"
+  ) {
     const usage = scenario.inspectorMetadata?.usage;
     if (usage?.limit.kind === "finite") {
       const warningThreshold =
@@ -357,8 +360,6 @@ function expectedActionLabel(scenario: ThreadsStateScenario): string | null {
     }
     return "Manage Your Plan";
   }
-  if (kind === "enable_intelligence") return "Enable Intelligence";
-  if (kind === "renew") return "Renew";
   return null;
 }
 
@@ -382,9 +383,9 @@ function expectedOverviewCopy(
   if (scenario.data === "error") return null;
   if (scenario.runtimeInfo.licenseStatus === "none") {
     return {
-      heading: "Enable Intelligence to inspect Threads.",
+      heading: "Production-grade agent chat, without the plumbing",
       description:
-        "Persist conversations and inspect saved thread history from the Inspector.",
+        "Rich Threads handles the boring, complex parts of production-grade agent chat—6+ generative UI modes, multimodal inputs, network recovery, multi-device streaming, database mirroring, and interoperability across agent frameworks—so you don't have to.",
     };
   }
   if (scenario.runtimeInfo.licenseStatus === "expired") {
@@ -1588,6 +1589,33 @@ test("drives the real Core, Inspector, stores, surfaces, and ledger for all 37 r
               setupPrompts[0]?.textContent?.trim(),
               `${key}: setup prompt label`,
             ).toBe("Copy setup prompt");
+          }
+          const lockedVideo = collectDeep(
+            root,
+            '[data-inspector-feature-video="threads"]',
+          );
+          const lockedEngineerAction = collectDeep(
+            root,
+            '[data-inspector-locked-feature-talk="threads"]',
+          );
+          expect(lockedVideo, `${key}: locked video presence`).toHaveLength(
+            expectsSetup ? 1 : 0,
+          );
+          expect(
+            lockedEngineerAction,
+            `${key}: locked engineer CTA presence`,
+          ).toHaveLength(expectsSetup ? 1 : 0);
+          if (expectsSetup) {
+            expect(
+              lockedVideo[0]?.getAttribute("src"),
+              `${key}: locked video URL`,
+            ).toBe(
+              "https://www.loom.com/embed/12e4885e3f5b4c6d926ad7fdf9fb8cf4",
+            );
+            expect(
+              lockedEngineerAction[0]?.textContent?.trim(),
+              `${key}: locked engineer CTA label`,
+            ).toBe("Talk to an Engineer");
           }
 
           const usage = scenario.inspectorMetadata?.usage;

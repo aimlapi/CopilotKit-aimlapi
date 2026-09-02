@@ -985,7 +985,7 @@ const lockedCapabilityCases = [
 }>;
 
 test.each(lockedCapabilityCases)(
-  "locked Threads reuse the local demo frame for $name without real routes",
+  "locked Threads render the Rich Threads video for $name without real routes",
   async (case_) => {
     const harness = await setupSettledState({
       endpoints: case_.endpoints,
@@ -1020,20 +1020,23 @@ test.each(lockedCapabilityCases)(
         "Persisted support thread",
       );
       expect(root.textContent).toContain(
-        "Enable Intelligence to inspect Threads.",
+        "Production-grade agent chat, without the plumbing",
       );
-      expect(
-        root.querySelector(".cpk-threads-overview-video-frame"),
-      ).not.toBeNull();
+      const video = root.querySelector<HTMLIFrameElement>(
+        '[data-inspector-feature-video="threads"]',
+      );
+      expect(video?.src).toBe(
+        "https://www.loom.com/embed/12e4885e3f5b4c6d926ad7fdf9fb8cf4",
+      );
       expect(root.textContent).not.toContain("Learn how Threads work");
       expect(root.textContent).not.toContain(
         "Explore self-hosted Intelligence",
       );
       const action = root.querySelector<HTMLAnchorElement>(
-        '[data-inspector-action-placement="locked"]',
+        '[data-inspector-locked-feature-talk="threads"]',
       );
-      expect(action?.textContent?.trim()).toBe("Enable Intelligence");
-      expect(action?.href).toBe("https://cloud.copilotkit.ai/actions/enable");
+      expect(action?.textContent?.trim()).toBe("Talk to an Engineer");
+      expect(new URL(action!.href).pathname).toBe("/talk-to-an-engineer");
       expect(
         root.querySelector("[data-inspector-threads-footer]"),
       ).not.toBeNull();
@@ -1074,7 +1077,7 @@ test.each(lockedCapabilityCases)(
 
       await harness.selectRow("Inspect durable run history");
       expect(root.textContent).toContain(
-        "Enable Intelligence to inspect Threads.",
+        "Production-grade agent chat, without the plumbing",
       );
       expect(harness.routes()).toEqual(ZERO_ROUTES);
     } finally {
@@ -1091,7 +1094,6 @@ type LockedActionCase = Readonly<{
   actionUrl?: string;
   heading: string;
   description?: string;
-  bodyLabel?: string;
   footerLabel?: string;
 }>;
 
@@ -1112,8 +1114,9 @@ const lockedActionCases: ReadonlyArray<LockedActionCase> = [
     runtimeLicense: "none",
     actionKind: "enable_intelligence",
     actionUrl: "https://cloud.copilotkit.ai/actions/enable",
-    heading: "Enable Intelligence to inspect Threads.",
-    bodyLabel: "Enable Intelligence",
+    heading: "Production-grade agent chat, without the plumbing",
+    description:
+      "Rich Threads handles the boring, complex parts of production-grade agent chat—6+ generative UI modes, multimodal inputs, network recovery, multi-device streaming, database mirroring, and interoperability across agent frameworks—so you don't have to.",
   },
   {
     name: "expired renew action",
@@ -1122,7 +1125,6 @@ const lockedActionCases: ReadonlyArray<LockedActionCase> = [
     actionKind: "renew",
     actionUrl: "https://cloud.copilotkit.ai/actions/renew",
     heading: "Renew Intelligence to inspect Threads.",
-    bodyLabel: "Renew",
   },
   {
     name: "expired manage action",
@@ -1131,7 +1133,6 @@ const lockedActionCases: ReadonlyArray<LockedActionCase> = [
     actionKind: "manage_plan",
     actionUrl: "https://cloud.copilotkit.ai/actions/manage-expired",
     heading: "Renew Intelligence to inspect Threads.",
-    bodyLabel: "Manage Your Plan",
   },
   {
     name: "unknown action",
@@ -1145,7 +1146,7 @@ const lockedActionCases: ReadonlyArray<LockedActionCase> = [
     name: "missing action",
     metadataState: "none",
     runtimeLicense: "none",
-    heading: "Enable Intelligence to inspect Threads.",
+    heading: "Production-grade agent chat, without the plumbing",
   },
   {
     name: "unsafe matched action",
@@ -1153,7 +1154,7 @@ const lockedActionCases: ReadonlyArray<LockedActionCase> = [
     runtimeLicense: "none",
     actionKind: "enable_intelligence",
     actionUrl: "javascript:alert(1)",
-    heading: "Enable Intelligence to inspect Threads.",
+    heading: "Production-grade agent chat, without the plumbing",
   },
   {
     name: "known metadata Runtime conflict",
@@ -1166,7 +1167,7 @@ const lockedActionCases: ReadonlyArray<LockedActionCase> = [
 ];
 
 test.each(lockedActionCases)(
-  "locked action matrix keeps only the trusted $name",
+  "locked action matrix keeps the unified CTAs for $name",
   async (case_) => {
     const harness = await setupSettledState({
       endpoints: DISABLED_ENDPOINTS,
@@ -1181,8 +1182,11 @@ test.each(lockedActionCases)(
     });
     try {
       const root = harness.inspector.shadowRoot!;
-      const bodyAction = root.querySelector<HTMLAnchorElement>(
+      const metadataBodyAction = root.querySelector<HTMLAnchorElement>(
         '[data-inspector-action-placement="locked"]',
+      );
+      const talkAction = root.querySelector<HTMLAnchorElement>(
+        '[data-inspector-locked-feature-talk="threads"]',
       );
       const footerAction = root.querySelector<HTMLAnchorElement>(
         '[data-inspector-action-placement="threads-footer"]',
@@ -1197,15 +1201,12 @@ test.each(lockedActionCases)(
       }
       expect(harness.rows()).toHaveLength(3);
       expect(promptAction?.textContent?.trim()).toBe("Copy setup prompt");
-      expect(bodyAction?.textContent?.trim()).toBe(case_.bodyLabel);
+      expect(metadataBodyAction).toBeNull();
+      expect(talkAction?.textContent?.trim()).toBe("Talk to an Engineer");
+      expect(new URL(talkAction!.href).pathname).toBe("/talk-to-an-engineer");
       expect(footerAction?.textContent?.trim()).toBe(case_.footerLabel);
-      if (case_.bodyLabel) {
-        expect(bodyAction?.href).toBe(case_.actionUrl);
-        expect(bodyAction?.target).toBe("_blank");
-        expect(bodyAction?.rel.split(/\s+/)).toContain("noopener");
-      } else {
-        expect(bodyAction).toBeNull();
-      }
+      expect(talkAction?.target).toBe("_blank");
+      expect(talkAction?.rel.split(/\s+/)).toContain("noopener");
       expect(promptAction?.type).toBe("button");
       expect(promptAction?.getAttribute("aria-label")).toBe(
         "Copy setup prompt for Threads",
