@@ -17543,7 +17543,13 @@ export class WebInspectorElement extends LitElement {
         <div class="cpk-locked-feature-layout">
           <div class="cpk-locked-feature-copy">
             <div class="cpk-locked-feature-name">
-              <span aria-hidden="true"></span>
+              <span class="cpk-locked-feature-icon" aria-hidden="true">
+                ${
+                  serviceId === "threads"
+                    ? unsafeHTML(this.customTabIcons.threads)
+                    : this.renderIcon("Brain")
+                }
+              </span>
               ${featureName}
             </div>
             <h2 class="cpk-locked-feature-title">${heading}</h2>
@@ -17551,7 +17557,7 @@ export class WebInspectorElement extends LitElement {
             <div class="cpk-threads-overview-actions">
               ${this.renderFeatureSetupPrompt(
                 serviceId,
-                "cpk-threads-overview-action cpk-threads-overview-action-primary",
+                "inspector-account-cta cpk-locked-feature-setup-cta",
               )}
               <a
                 data-inspector-locked-feature-talk=${serviceId}
@@ -17669,7 +17675,7 @@ export class WebInspectorElement extends LitElement {
         return {
           heading: "Production-grade agent chat, without the plumbing",
           description:
-            "Rich Threads handles the boring, complex parts of production-grade agent chat—6+ generative UI modes, multimodal inputs, network recovery, multi-device streaming, database mirroring, and interoperability across agent frameworks—so you don't have to.",
+            "Rich Threads gives you A2UI, MCP Apps, tool rendering, and file or image inputs out of the box. It keeps streaming through reconnects and across devices. It mirrors to your database and works with any agent framework.",
         };
       case "expired":
         return {

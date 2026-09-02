@@ -1089,7 +1089,7 @@ const lockedActionCases: ReadonlyArray<LockedActionCase> = [
     actionUrl: "https://cloud.copilotkit.ai/actions/enable",
     heading: "Production-grade agent chat, without the plumbing",
     description:
-      "Rich Threads handles the boring, complex parts of production-grade agent chat—6+ generative UI modes, multimodal inputs, network recovery, multi-device streaming, database mirroring, and interoperability across agent frameworks—so you don't have to.",
+      "Rich Threads gives you A2UI, MCP Apps, tool rendering, and file or image inputs out of the box. It keeps streaming through reconnects and across devices. It mirrors to your database and works with any agent framework.",
   },
   {
     name: "expired renew action",
@@ -1178,9 +1178,18 @@ test.each(lockedActionCases)(
       expect(talkAction?.target).toBe("_blank");
       expect(talkAction?.rel.split(/\s+/)).toContain("noopener");
       expect(promptAction?.type).toBe("button");
+      expect(promptAction?.classList.contains("inspector-account-cta")).toBe(
+        true,
+      );
+      expect(
+        promptAction?.classList.contains("cpk-threads-overview-action-primary"),
+      ).toBe(false);
       expect(promptAction?.getAttribute("aria-label")).toBe(
         "Copy setup prompt for Threads",
       );
+      expect(
+        root.querySelector('.cpk-locked-feature-icon svg[viewBox="0 0 15 15"]'),
+      ).not.toBeNull();
       expect(
         root.querySelector(
           '[data-inspector-action-placement="threads-footer"]',

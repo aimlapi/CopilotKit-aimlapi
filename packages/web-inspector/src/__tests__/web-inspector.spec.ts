@@ -3461,6 +3461,15 @@ describe("WebInspectorElement memories — view states", () => {
     expect(
       el.shadowRoot?.querySelector('[data-inspector-feature-video="memory"]'),
     ).not.toBeNull();
+    const setupPrompt = el.shadowRoot?.querySelector<HTMLButtonElement>(
+      '[data-inspector-feature-setup-prompt="memory"]',
+    );
+    expect(setupPrompt?.classList.contains("inspector-account-cta")).toBe(true);
+    expect(
+      el.shadowRoot?.querySelector(
+        '.cpk-locked-feature-icon svg[viewBox="0 0 24 24"]',
+      ),
+    ).not.toBeNull();
     expect(el.shadowRoot?.textContent).not.toContain(
       "Sign up for Intelligence",
     );

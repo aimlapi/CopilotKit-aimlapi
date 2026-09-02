@@ -386,7 +386,7 @@ function expectedOverviewCopy(
     return {
       heading: "Production-grade agent chat, without the plumbing",
       description:
-        "Rich Threads handles the boring, complex parts of production-grade agent chat—6+ generative UI modes, multimodal inputs, network recovery, multi-device streaming, database mirroring, and interoperability across agent frameworks—so you don't have to.",
+        "Rich Threads gives you A2UI, MCP Apps, tool rendering, and file or image inputs out of the box. It keeps streaming through reconnects and across devices. It mirrors to your database and works with any agent framework.",
     };
   }
   if (scenario.runtimeInfo.licenseStatus === "expired") {

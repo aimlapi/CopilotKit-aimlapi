@@ -3221,12 +3221,20 @@ small.inspector-system-health-detail {
   text-transform: uppercase;
 }
 
-.cpk-locked-feature-name span {
-  width: 7px;
-  height: 7px;
-  border-radius: 999px;
-  background-color: #85ecce;
-  box-shadow: 0 0 0 4px rgba(133, 236, 206, 0.22);
+.cpk-locked-feature-icon {
+  display: inline-flex;
+  width: 15px;
+  height: 15px;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  color: inherit;
+}
+
+.cpk-locked-feature-icon svg {
+  display: block;
+  width: 15px;
+  height: 15px;
 }
 
 .cpk-locked-feature-title {
@@ -3299,11 +3307,13 @@ small.inspector-system-health-detail {
 [data-inspector-feature-setup-prompt][data-copy-state="copied"] {
   border-color: #087653;
   background-color: #087653;
+  color: #ffffff;
 }
 
 [data-inspector-feature-setup-prompt][data-copy-state="error"] {
   border-color: #b32d3b;
   background-color: #b32d3b;
+  color: #ffffff;
 }
 
 [data-inspector-feature-setup-prompt]:focus-visible {
