@@ -985,7 +985,7 @@ const lockedCapabilityCases = [
 }>;
 
 test.each(lockedCapabilityCases)(
-  "locked Threads render the Rich Threads video for $name without real routes",
+  "locked Threads render the full-page Rich Threads gate for $name without real routes",
   async (case_) => {
     const harness = await setupSettledState({
       endpoints: case_.endpoints,
@@ -1004,21 +1004,8 @@ test.each(lockedCapabilityCases)(
     });
     try {
       const root = harness.inspector.shadowRoot!;
-      const rows = harness.rows();
-
-      expect(rows.map((row) => row.textContent)).toEqual([
-        expect.stringContaining("Realtime thread sync"),
-        expect.stringContaining("Manage saved conversations"),
-        expect.stringContaining("Inspect durable run history"),
-      ]);
-      expect(harness.threadList().threads.map((thread) => thread.id)).toEqual([
-        "example-realtime-sync",
-        "example-manage-history",
-        "example-inspect-runs",
-      ]);
-      expect(harness.threadList().shadowRoot?.textContent).not.toContain(
-        "Persisted support thread",
-      );
+      expect(root.querySelector("cpk-thread-list")).toBeNull();
+      expect(root.textContent).toContain("Rich Threads");
       expect(root.textContent).toContain(
         "Production-grade agent chat, without the plumbing",
       );
@@ -1037,10 +1024,8 @@ test.each(lockedCapabilityCases)(
       );
       expect(action?.textContent?.trim()).toBe("Talk to an Engineer");
       expect(new URL(action!.href).pathname).toBe("/talk-to-an-engineer");
-      expect(
-        root.querySelector("[data-inspector-threads-footer]"),
-      ).not.toBeNull();
-      expect(root.textContent).toContain("0 / 200 Threads");
+      expect(root.querySelector("[data-inspector-threads-footer]")).toBeNull();
+      expect(root.textContent).not.toContain("0 / 200 Threads");
       expect(harness.routes()).toEqual(ZERO_ROUTES);
       const lockedEvents = telemetryFor(
         harness.telemetryBodies,
@@ -1062,23 +1047,13 @@ test.each(lockedCapabilityCases)(
         runtime_url_type: "remote",
         telemetry_disabled: false,
       });
-      expect(exampleEvents).toHaveLength(3);
-      expect(
-        exampleEvents.map(({ properties }) => properties.example_kind),
-      ).toEqual(["realtime_sync", "manage_history", "inspect_runs"]);
+      expect(exampleEvents).toEqual([]);
       expect(
         telemetryFor(
           harness.telemetryBodies,
           TELEMETRY_EVENTS.threadsEmptyEnabledViewed,
         ),
       ).toEqual([]);
-
-      await exerciseLocalExamples(harness, ZERO_ROUTES, "Locked");
-
-      await harness.selectRow("Inspect durable run history");
-      expect(root.textContent).toContain(
-        "Production-grade agent chat, without the plumbing",
-      );
       expect(harness.routes()).toEqual(ZERO_ROUTES);
     } finally {
       await harness.teardown();
@@ -1094,7 +1069,6 @@ type LockedActionCase = Readonly<{
   actionUrl?: string;
   heading: string;
   description?: string;
-  footerLabel?: string;
 }>;
 
 const lockedActionCases: ReadonlyArray<LockedActionCase> = [
@@ -1106,7 +1080,6 @@ const lockedActionCases: ReadonlyArray<LockedActionCase> = [
     actionUrl: "https://cloud.copilotkit.ai/actions/manage",
     heading: "Finish setting up Rich Threads",
     description: "Copy this prompt into your coding agent to finish the setup.",
-    footerLabel: "Manage Your Plan",
   },
   {
     name: "none enable action",
@@ -1188,9 +1161,6 @@ test.each(lockedActionCases)(
       const talkAction = root.querySelector<HTMLAnchorElement>(
         '[data-inspector-locked-feature-talk="threads"]',
       );
-      const footerAction = root.querySelector<HTMLAnchorElement>(
-        '[data-inspector-action-placement="threads-footer"]',
-      );
       const promptAction = root.querySelector<HTMLButtonElement>(
         "[data-inspector-threads-setup-prompt]",
       );
@@ -1199,24 +1169,23 @@ test.each(lockedActionCases)(
       if (case_.description) {
         expect(root.textContent).toContain(case_.description);
       }
-      expect(harness.rows()).toHaveLength(3);
+      expect(root.querySelector("cpk-thread-list")).toBeNull();
+      expect(root.textContent).toContain("Rich Threads");
       expect(promptAction?.textContent?.trim()).toBe("Copy setup prompt");
       expect(metadataBodyAction).toBeNull();
       expect(talkAction?.textContent?.trim()).toBe("Talk to an Engineer");
       expect(new URL(talkAction!.href).pathname).toBe("/talk-to-an-engineer");
-      expect(footerAction?.textContent?.trim()).toBe(case_.footerLabel);
       expect(talkAction?.target).toBe("_blank");
       expect(talkAction?.rel.split(/\s+/)).toContain("noopener");
       expect(promptAction?.type).toBe("button");
       expect(promptAction?.getAttribute("aria-label")).toBe(
         "Copy setup prompt for Threads",
       );
-      if (case_.footerLabel) {
-        expect(footerAction?.href).toBe(case_.actionUrl);
-      } else {
-        expect(footerAction).toBeNull();
-      }
-      await exerciseLocalExamples(harness, ZERO_ROUTES, case_.name);
+      expect(
+        root.querySelector(
+          '[data-inspector-action-placement="threads-footer"]',
+        ),
+      ).toBeNull();
       expect(harness.routes()).toEqual(ZERO_ROUTES);
     } finally {
       await harness.teardown();
@@ -1364,7 +1333,7 @@ const footerCases = footerBodyStates.flatMap((state) =>
 );
 
 test.each(footerCases)(
-  "the $module.name footer stays last in the $state body",
+  "the $state body handles the $module.name footer placement",
   async ({ state, module }) => {
     const metadata = inspectorMetadata(
       "valid",
@@ -1378,6 +1347,11 @@ test.each(footerCases)(
       const footers = root.querySelectorAll<HTMLElement>(
         "footer[data-inspector-threads-footer]",
       );
+      if (state === "locked") {
+        expect(footers).toHaveLength(0);
+        expect(root.textContent).toContain("Finish setting up Rich Threads");
+        return;
+      }
       const footer = footers[0];
       expect(footers).toHaveLength(1);
       expect(footer?.parentElement?.lastElementChild).toBe(footer);
@@ -1398,9 +1372,6 @@ test.each(footerCases)(
         expect(action).toBeNull();
       }
 
-      if (state === "locked") {
-        expect(root.textContent).toContain("Finish setting up Rich Threads");
-      }
       if (state === "loading") {
         expect(root.querySelector('[role="status"]')).not.toBeNull();
       }

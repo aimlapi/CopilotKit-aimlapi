@@ -16491,7 +16491,8 @@ export class WebInspectorElement extends LitElement {
     if (
       threadsFooterAction &&
       !this.settingsOpen &&
-      this.selectedMenu === "threads"
+      this.selectedMenu === "threads" &&
+      this.areThreadEndpointsAvailable()
     ) {
       return { action: threadsFooterAction, placement: "threads-footer" };
     }
@@ -16733,14 +16734,12 @@ export class WebInspectorElement extends LitElement {
   }
 
   private shouldRenderExampleThreads(
-    locked: boolean,
     displayThreads: ɵThread[],
     threadsErrorMessage: string | null,
     threadsLoading: boolean,
   ): boolean {
     return (
-      locked ||
-      (!threadsErrorMessage && !threadsLoading && displayThreads.length === 0)
+      !threadsErrorMessage && !threadsLoading && displayThreads.length === 0
     );
   }
 
@@ -17485,18 +17484,7 @@ export class WebInspectorElement extends LitElement {
     `;
   }
 
-  private renderThreadsExampleOverview(locked: boolean) {
-    if (locked) {
-      const lockedCopy = this.getThreadsLockedCopy();
-      return this.renderLockedFeatureOverview({
-        serviceId: "threads",
-        heading: lockedCopy.heading,
-        description: lockedCopy.description,
-        videoUrl: THREADS_LOCKED_VIDEO_URL,
-        videoTitle: "Rich Threads overview",
-      });
-    }
-
+  private renderThreadsExampleOverview() {
     const onboardingAction = this.getThreadsEmptyOnboardingAction();
     return html`
       <div class="cpk-threads-overview">
@@ -17534,12 +17522,14 @@ export class WebInspectorElement extends LitElement {
 
   private renderLockedFeatureOverview({
     serviceId,
+    featureName,
     heading,
     description,
     videoUrl,
     videoTitle,
   }: {
     serviceId: HomeFeaturePromptId;
+    featureName: string;
     heading: string;
     description: string;
     videoUrl: string;
@@ -17547,12 +17537,36 @@ export class WebInspectorElement extends LitElement {
   }) {
     return html`
       <div
-        class="cpk-threads-overview"
+        class="cpk-locked-feature"
         data-inspector-locked-feature=${serviceId}
       >
-        <div class="cpk-threads-overview-content">
-          <h2 class="cpk-threads-overview-title">${heading}</h2>
-          <div class="cpk-threads-overview-video-frame">
+        <div class="cpk-locked-feature-layout">
+          <div class="cpk-locked-feature-copy">
+            <div class="cpk-locked-feature-name">
+              <span aria-hidden="true"></span>
+              ${featureName}
+            </div>
+            <h2 class="cpk-locked-feature-title">${heading}</h2>
+            <p class="cpk-locked-feature-description">${description}</p>
+            <div class="cpk-threads-overview-actions">
+              ${this.renderFeatureSetupPrompt(
+                serviceId,
+                "cpk-threads-overview-action cpk-threads-overview-action-primary",
+              )}
+              <a
+                data-inspector-locked-feature-talk=${serviceId}
+                href=${this.getTalkToEngineerUrl()}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Talk to an Engineer (opens in a new tab)"
+                class="cpk-threads-overview-action cpk-threads-overview-action-secondary"
+                @click=${this.handleThreadsTalkToEngineerClick}
+              >
+                Talk to an Engineer
+              </a>
+            </div>
+          </div>
+          <div class="cpk-threads-overview-video-frame cpk-locked-feature-video">
             <iframe
               class="cpk-threads-overview-video-embed"
               data-inspector-feature-video=${serviceId}
@@ -17562,24 +17576,6 @@ export class WebInspectorElement extends LitElement {
               allow="fullscreen; picture-in-picture"
               allowfullscreen
             ></iframe>
-          </div>
-          <p class="cpk-threads-overview-copy">${description}</p>
-          <div class="cpk-threads-overview-actions">
-            ${this.renderFeatureSetupPrompt(
-              serviceId,
-              "cpk-threads-overview-action cpk-threads-overview-action-primary",
-            )}
-            <a
-              data-inspector-locked-feature-talk=${serviceId}
-              href=${this.getTalkToEngineerUrl()}
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label="Talk to an Engineer (opens in a new tab)"
-              class="cpk-threads-overview-action cpk-threads-overview-action-secondary"
-              @click=${this.handleThreadsTalkToEngineerClick}
-            >
-              Talk to an Engineer
-            </a>
           </div>
         </div>
       </div>
@@ -17749,6 +17745,7 @@ export class WebInspectorElement extends LitElement {
     if (!learningEnabled) {
       return this.renderLockedFeatureOverview({
         serviceId: "memory",
+        featureName: "Learning",
         heading: this._memoryStoreUnsupported
           ? "Upgrade to enable Learning"
           : "Turn every interaction into reusable context",
@@ -18029,22 +18026,31 @@ export class WebInspectorElement extends LitElement {
 
   private renderThreadsView() {
     const locked = !this.areThreadEndpointsAvailable();
+    if (locked) {
+      this.trackThreadsViewStateOnce("locked");
+      const lockedCopy = this.getThreadsLockedCopy();
+      return this.renderLockedFeatureOverview({
+        serviceId: "threads",
+        featureName: "Rich Threads",
+        heading: lockedCopy.heading,
+        description: lockedCopy.description,
+        videoUrl: THREADS_LOCKED_VIDEO_URL,
+        videoTitle: "Rich Threads overview",
+      });
+    }
+
     const { displayThreads, threadsErrorMessage, threadsLoading } =
       this.getActiveThreadsState();
     const loadingWithoutRows =
-      !locked &&
-      threadsLoading &&
-      !threadsErrorMessage &&
-      displayThreads.length === 0;
+      threadsLoading && !threadsErrorMessage && displayThreads.length === 0;
 
     const showingExamples = this.shouldRenderExampleThreads(
-      locked,
       displayThreads,
       threadsErrorMessage,
       threadsLoading,
     );
     const visibleThreads =
-      !locked && (threadsErrorMessage || loadingWithoutRows)
+      threadsErrorMessage || loadingWithoutRows
         ? []
         : showingExamples
           ? THREADS_EXAMPLE_THREADS
@@ -18061,9 +18067,7 @@ export class WebInspectorElement extends LitElement {
       selectedThread !== null &&
       selectedThread.id === this.selectedLocalExampleThreadId;
 
-    if (locked) {
-      this.trackThreadsViewStateOnce("locked");
-    } else if (
+    if (
       !threadsErrorMessage &&
       (!threadsLoading || displayThreads.length > 0)
     ) {
@@ -18112,7 +18116,7 @@ export class WebInspectorElement extends LitElement {
             style="flex:1;min-width:0;overflow:hidden;display:flex;position:relative;"
           >
             ${
-              !locked && threadsErrorMessage
+              threadsErrorMessage
                 ? html`
                   <div
                     role="alert"
@@ -18215,7 +18219,7 @@ export class WebInspectorElement extends LitElement {
                           : nothing
                       }`
                     : showingExamples
-                      ? this.renderThreadsExampleOverview(locked)
+                      ? this.renderThreadsExampleOverview()
                       : html`
                         <div
                           style="

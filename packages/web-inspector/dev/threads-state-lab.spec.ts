@@ -347,6 +347,7 @@ async function requestCounters(
 
 /** Returns the expected action label for trusted fixture metadata. */
 function expectedActionLabel(scenario: ThreadsStateScenario): string | null {
+  if (scenario.capability !== "enabled") return null;
   const kind = scenario.inspectorMetadata?.action?.kind;
   if (
     scenario.inspectorMetadata?.license?.state === "valid" &&
@@ -1617,6 +1618,10 @@ test("drives the real Core, Inspector, stores, surfaces, and ledger for all 37 r
               `${key}: locked engineer CTA label`,
             ).toBe("Talk to an Engineer");
           }
+          expect(
+            collectDeep(root, "cpk-thread-list"),
+            `${key}: thread list presence`,
+          ).toHaveLength(expectsSetup ? 0 : 1);
 
           const usage = scenario.inspectorMetadata?.usage;
           const threadCount = collectDeep(
@@ -1624,9 +1629,9 @@ test("drives the real Core, Inspector, stores, surfaces, and ledger for all 37 r
             "[data-inspector-thread-count]",
           );
           expect(threadCount, `${key}: usage presence`).toHaveLength(
-            usage ? 1 : 0,
+            usage && !expectsSetup ? 1 : 0,
           );
-          if (usage) {
+          if (usage && !expectsSetup) {
             const used = String(usage.used);
             expect(text, `${key}: used count`).toContain(used);
             const progress = collectDeep(root, "progress");
@@ -1743,7 +1748,7 @@ test("drives the real Core, Inspector, stores, surfaces, and ledger for all 37 r
           if (scenario.data === "error") {
             expect(examples, `${key}: list-error examples`).toHaveLength(0);
           } else if (
-            scenario.capability !== "enabled" ||
+            scenario.capability === "enabled" &&
             scenario.data === "zero"
           ) {
             expect(examples, `${key}: local examples`).toHaveLength(3);
@@ -1775,7 +1780,7 @@ test("drives the real Core, Inspector, stores, surfaces, and ledger for all 37 r
             expect(await requestCounters(lab.origin, scenario), key).toEqual(
               scenario.expectedRequests,
             );
-          } else {
+          } else if (scenario.capability === "enabled") {
             expect(examples, `${key}: no local examples`).toHaveLength(0);
             for (const thread of scenario.threads) {
               expect(
@@ -1856,6 +1861,21 @@ test("drives the real Core, Inspector, stores, surfaces, and ledger for all 37 r
                 });
               },
               { timeout: 5_000, interval: 20 },
+            );
+          } else {
+            expect(examples, `${key}: locked examples`).toHaveLength(0);
+            expect(
+              collectDeep(root, "cpk-thread-details"),
+              `${key}: locked thread details`,
+            ).toHaveLength(0);
+            for (const thread of scenario.threads) {
+              expect(
+                inspectorText(inspector),
+                `${key}: hidden locked thread ${thread.id}`,
+              ).not.toContain(thread.name);
+            }
+            expect(await requestCounters(lab.origin, scenario), key).toEqual(
+              scenario.expectedRequests,
             );
           }
         } finally {

@@ -2720,6 +2720,8 @@ describe("WebInspectorElement owned thread store headers (#5581)", () => {
       '[data-inspector-locked-feature-talk="threads"]',
     );
     expect(engineer?.closest("#cpk-main-scroll")).not.toBeNull();
+    expect(inspector.shadowRoot?.querySelector("cpk-thread-list")).toBeNull();
+    expect(text).toContain("Rich Threads");
     expect(text).not.toContain("No threads yet");
     expect(
       fetchMock.mock.calls.some((call) => String(call[0]).includes("/threads")),

@@ -536,7 +536,9 @@ test("locked Threads use the Rich Threads Loom embed without starting the native
     expect(
       root.querySelector(".cpk-threads-overview-video-control"),
     ).toBeNull();
-    expectAllExamples(root);
+    expect(exampleRows(root)).toHaveLength(0);
+    expect(root.querySelector("cpk-thread-list")).toBeNull();
+    expect(root.textContent).toContain("Rich Threads");
     expect(harness.play).not.toHaveBeenCalled();
     expect(harness.routes()).toEqual(ZERO_ROUTES);
   } finally {

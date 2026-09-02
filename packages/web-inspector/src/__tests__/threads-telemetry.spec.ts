@@ -1287,12 +1287,10 @@ test("Settings overlay keeps Learning memories keys for changed metadata", async
 test("runtime telemetry opt-out stops every rendered Thread telemetry side effect", async () => {
   const disclosureLog = vi.spyOn(console, "info").mockImplementation(() => {});
   const harness = await setup({
-    endpoints: LOCKED_ENDPOINTS,
+    endpoints: ENABLED_ENDPOINTS,
     initialMenu: "ag-ui-events",
     telemetryDisabled: true,
-    threadsByAgent: {
-      alpha: [realThread("alpha", "opted-out-seeded-row")],
-    },
+    threadsByAgent: { alpha: [] },
   });
   try {
     await harness.open();
