@@ -23,7 +23,7 @@
  * we'd have to apply evenhandedly to every gateway that asks, which isn't a
  * list we want inside `resolveModel`").
  */
-export const AIMLAPI_PARTNER_ID = "";
+export const AIMLAPI_PARTNER_ID = "part_B5Xmawp87YODJfuBUtiCbR2m";
 
 /**
  * Gateway contract for the `X-AIMLAPI-Partner-ID` header: the literal prefix
