@@ -27,6 +27,6 @@ describe("aimlapi partner id placeholder", () => {
   });
 
   it("accepts a readable id of the shape other integrations registered", () => {
-    expect(AIMLAPI_PARTNER_ID_PATTERN.test("part_copilotkit")).toBe(true);
+    expect(AIMLAPI_PARTNER_ID_PATTERN.test("part_B5Xmawp87YODJfuBUtiCbR2m")).toBe(true);
   });
 });
