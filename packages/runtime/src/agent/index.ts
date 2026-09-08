@@ -64,6 +64,7 @@ import { createStateEventNormalizer } from "./state-delta";
 import type { StreamableHTTPClientTransportOptions } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { randomUUID } from "@copilotkit/shared";
+import { withAimlapiAttribution } from "./aimlapi-attribution";
 
 /**
  * Properties that can be overridden by forwardedProps
@@ -171,11 +172,17 @@ export interface MCPClientProvider {
  * Resolves a model specifier to a LanguageModel instance
  * @param spec - Model string (e.g., "openai/gpt-4o") or LanguageModel instance
  * @param apiKey - Optional API key to use instead of environment variables
+ * @param headers - Optional extra HTTP headers sent with every request to the
+ *   provider. Useful when a gateway or self-hosted endpoint needs its own
+ *   identification, routing or tracing headers; the provider merges them into
+ *   each outgoing request. Ignored when `spec` is already a LanguageModel,
+ *   because that instance owns its own transport.
  * @returns LanguageModel instance
  */
 export function resolveModel(
   spec: ModelSpecifier,
   apiKey?: string,
+  headers?: Record<string, string>,
 ): LanguageModel {
   // If already a LanguageModel instance, pass through
   if (typeof spec !== "string") {
@@ -209,6 +216,9 @@ export function resolveModel(
       // Use provided apiKey, or fall back to environment variable
       const openai = createOpenAI({
         apiKey: apiKey || process.env.OPENAI_API_KEY!,
+        // Fork-only: attribution for aimlapi.com, attached only when the base
+        // URL is our own origin. Drop this line with the fork-only commit.
+        headers: withAimlapiAttribution(process.env.OPENAI_BASE_URL, headers),
         // Honor an OpenAI-COMPATIBLE endpoint (Azure OpenAI, OpenRouter, a gateway,
         // vLLM/LM Studio/Ollama, etc.) via the standard OPENAI_BASE_URL env var.
         // Undefined when unset, so the provider falls back to its default
@@ -224,6 +234,7 @@ export function resolveModel(
       // Use provided apiKey, or fall back to environment variable
       const anthropic = createAnthropic({
         apiKey: apiKey || process.env.ANTHROPIC_API_KEY!,
+        headers,
         // Honor a custom Anthropic-compatible endpoint via ANTHROPIC_BASE_URL (see OpenAI note).
         baseURL: process.env.ANTHROPIC_BASE_URL,
       });
@@ -238,6 +249,7 @@ export function resolveModel(
       // Use provided apiKey, or fall back to environment variable
       const google = createGoogleGenerativeAI({
         apiKey: apiKey || process.env.GOOGLE_API_KEY!,
+        headers,
         // Honor a custom Google-compatible endpoint via GOOGLE_GENERATIVE_AI_BASE_URL (see OpenAI note).
         baseURL: process.env.GOOGLE_GENERATIVE_AI_BASE_URL,
       });
@@ -247,6 +259,7 @@ export function resolveModel(
 
     case "minimax": {
       const minimax = createOpenAI({
+        headers,
         name: "minimax",
         apiKey: apiKey || process.env.MINIMAX_API_KEY!,
         baseURL: process.env.MINIMAX_BASE_URL || "https://api.minimax.io/v1",
@@ -838,6 +851,16 @@ export interface BuiltInAgentClassicConfig {
    */
   apiKey?: string;
   /**
+   * Extra HTTP headers sent with every request to the model provider.
+   *
+   * Use this when the endpoint behind `OPENAI_BASE_URL` (or the equivalent for
+   * another provider) expects headers of its own — a gateway that identifies
+   * callers, a proxy that needs a routing hint, a tracing header. Ignored when
+   * `model` is already a LanguageModel instance, since that instance brings its
+   * own transport.
+   */
+  headers?: Record<string, string>;
+  /**
    * Maximum number of steps/iterations for tool calling (default: 1)
    */
   maxSteps?: number;
@@ -1030,7 +1053,7 @@ export class BuiltInAgent extends AbstractAgent {
       subscriber.next(startEvent);
 
       // Resolve the model, passing API key if provided
-      const model = resolveModel(config.model, config.apiKey);
+      const model = resolveModel(config.model, config.apiKey, config.headers);
 
       // Build prompt based on conditions
       let systemPrompt: string | undefined = undefined;
@@ -1180,6 +1203,7 @@ export class BuiltInAgent extends AbstractAgent {
             streamTextParams.model = resolveModel(
               props.model as string | LanguageModel,
               config.apiKey,
+              config.headers,
             );
           }
         }
