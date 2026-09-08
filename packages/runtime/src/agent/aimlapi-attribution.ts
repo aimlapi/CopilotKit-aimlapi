@@ -9,24 +9,66 @@
  * does exist here, unlike a catalog or a purely documentation-level
  * integration.
  *
- * No partner id has been registered for CopilotKit, so this constant is
- * deliberately EMPTY. An invented value would be worse than none: the gateway
- * accepts the request either way and silently drops a malformed id, so a typo
- * never surfaces at runtime and the traffic simply earns nothing. The
- * accompanying test is the only thing that can catch that, which is why it
- * asserts empty-or-well-formed rather than merely non-empty.
- *
- * Nothing imports this, and nothing should until an id exists. Sending the
- * headers would mean scoping them to our origin, which in this codebase means
- * a hardcoded aimlapi base URL inside `resolveModel` — precisely the change
- * upstream declined in CopilotKit/CopilotKit#6584 ("It also sets a precedent
- * we'd have to apply evenhandedly to every gateway that asks, which isn't a
- * list we want inside `resolveModel`").
+ * Upstream declined to special-case a gateway inside `resolveModel`
+ * (CopilotKit/CopilotKit#6584: "It also sets a precedent we'd have to apply
+ * evenhandedly to every gateway that asks"). That objection is respected: the
+ * upstream-facing change is a generic `headers` option on
+ * `BuiltInAgentClassicConfig`, naming no provider. This module is the fork-only
+ * half that fills those headers in for our own endpoint, and it is expected to
+ * be dropped before anything is offered upstream.
  */
-export const AIMLAPI_PARTNER_ID = "part_B5Xmawp87YODJfuBUtiCbR2m";
 
 /**
  * Gateway contract for the `X-AIMLAPI-Partner-ID` header: the literal prefix
  * `part_` followed by 1-64 alphanumerics. No dashes, no underscores.
  */
 export const AIMLAPI_PARTNER_ID_PATTERN = /^part_[A-Za-z0-9]{1,64}$/;
+
+export const AIMLAPI_PARTNER_ID = "part_B5Xmawp87YODJfuBUtiCbR2m";
+
+/**
+ * The origin the headers are scoped to. Both halves matter.
+ *
+ * The host half keeps our partner id from travelling to somebody else's
+ * gateway when a user repoints `OPENAI_BASE_URL`. The scheme half keeps the id
+ * — and the Authorization bearer beside it — off a plaintext connection: a
+ * name that resolves to `http://api.aimlapi.com:1234` inside a container's DNS
+ * would otherwise be handed both.
+ */
+const AIMLAPI_ORIGIN = "https://api.aimlapi.com";
+
+export const AIMLAPI_ATTRIBUTION_HEADERS: Readonly<Record<string, string>> =
+  Object.freeze({
+    "HTTP-Referer": "https://github.com/CopilotKit/CopilotKit",
+    "X-Title": "CopilotKit",
+    "X-AIMLAPI-Source": "agent/copilotkit",
+    "X-AIMLAPI-Partner-ID": AIMLAPI_PARTNER_ID,
+  });
+
+/**
+ * True only when `baseURL` names our own origin — exact host, https scheme.
+ *
+ * A look-alike such as `https://api.aimlapi.com.example.net/v1` is rejected,
+ * because the comparison is on the parsed origin rather than a substring.
+ */
+export function isAimlapiOrigin(baseURL: string | undefined): boolean {
+  if (!baseURL) return false;
+  try {
+    return new URL(baseURL).origin === AIMLAPI_ORIGIN;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Merges attribution into the caller's headers when, and only when, the
+ * request is bound for our origin. The caller's own headers win on a clash —
+ * an application that deliberately sets `X-Title` keeps its value.
+ */
+export function withAimlapiAttribution(
+  baseURL: string | undefined,
+  headers?: Record<string, string>,
+): Record<string, string> | undefined {
+  if (!isAimlapiOrigin(baseURL)) return headers;
+  return { ...AIMLAPI_ATTRIBUTION_HEADERS, ...(headers ?? {}) };
+}

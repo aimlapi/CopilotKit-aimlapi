@@ -64,6 +64,7 @@ import { createStateEventNormalizer } from "./state-delta";
 import type { StreamableHTTPClientTransportOptions } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { randomUUID } from "@copilotkit/shared";
+import { withAimlapiAttribution } from "./aimlapi-attribution";
 
 /**
  * Properties that can be overridden by forwardedProps
@@ -215,7 +216,9 @@ export function resolveModel(
       // Use provided apiKey, or fall back to environment variable
       const openai = createOpenAI({
         apiKey: apiKey || process.env.OPENAI_API_KEY!,
-        headers,
+        // Fork-only: attribution for aimlapi.com, attached only when the base
+        // URL is our own origin. Drop this line with the fork-only commit.
+        headers: withAimlapiAttribution(process.env.OPENAI_BASE_URL, headers),
         // Honor an OpenAI-COMPATIBLE endpoint (Azure OpenAI, OpenRouter, a gateway,
         // vLLM/LM Studio/Ollama, etc.) via the standard OPENAI_BASE_URL env var.
         // Undefined when unset, so the provider falls back to its default
