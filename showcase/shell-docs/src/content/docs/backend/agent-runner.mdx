@@ -71,6 +71,20 @@ agent it serves. The same runner handles `run`, `connect`, and `stop` for all
 registered agents.
 </Callout>
 
+<Callout type="warn" title="Don't pass a `runner` on an Intelligence runtime">
+An Intelligence runtime wires `IntelligenceAgentRunner` itself, so it accepts no `runner` of
+your own. Passing one is a type error, and a JavaScript caller who gets past the types is
+refused at construction rather than having the option quietly dropped:
+
+```text
+Intelligence Runtime auto-wires its own `runner`; passing `runner` alongside
+`intelligence` is not supported.
+```
+
+Choosing a runner is a decision for a self-hosted runtime only. If you are converting an
+existing runtime, see [Connect your runtime to Intelligence](/intelligence/connect-your-runtime).
+</Callout>
+
 ## Bounding in-memory history
 
 `InMemoryAgentRunner` holds every thread's run history in a process-global
